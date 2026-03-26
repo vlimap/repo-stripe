@@ -1,0 +1,8 @@
+node_modules/
+back/node_modules/
+front/node_modules/
+front/dist/
+.env
+back/.env
+front/.env
+*.log

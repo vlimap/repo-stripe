@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Space Grotesk", "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+
+  --color-senac-50: #eef5ff;
+  --color-senac-100: #dce8f7;
+  --color-senac-200: #bfd5ef;
+  --color-senac-300: #8eb8e3;
+  --color-senac-400: #5b97d1;
+  --color-senac-500: #0056a4;
+  --color-senac-600: #004992;
+  --color-senac-700: #004182;
+  --color-senac-800: #14365f;
+  --color-senac-900: #0c2d57;
+  --color-senac-950: #10233d;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+  }
+
+  body {
+    @apply min-h-screen bg-slate-100 text-slate-900 antialiased;
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+
+  ::selection {
+    background: rgba(0, 86, 164, 0.18);
+  }
+}

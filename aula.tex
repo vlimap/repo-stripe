@@ -1,0 +1,996 @@
+\documentclass[aspectratio=169]{beamer}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{positioning, fit, shapes.geometric, arrows.meta, backgrounds}
+
+\definecolor{senacblue}{RGB}{0,65,130}
+\definecolor{codebg}{RGB}{248,248,248}
+\definecolor{codeframe}{RGB}{220,220,220}
+\definecolor{codestr}{RGB}{0,128,0}
+\definecolor{codekw}{RGB}{0,65,130}
+\definecolor{codecom}{RGB}{120,120,120}
+
+\hypersetup{colorlinks=true, urlcolor=senacblue, linkcolor=senacblue}
+\pdfstringdefDisableCommands{\def\\{ }}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\screenshotplaceholder}[2]{%
+  \IfFileExists{#1}{%
+    \includegraphics[width=\linewidth]{#1}%
+  }{%
+    \fbox{%
+      \parbox[c][0.47\textheight][c]{0.92\linewidth}{%
+        \centering
+        \textbf{Screenshot opcional}\\[0.5em]
+        Salve a imagem em:\\[0.3em]
+        \texttt{#1}\\[0.8em]
+        #2
+      }%
+    }%
+  }%
+}
+
+\usetheme{Madrid}
+\usecolortheme{dolphin}
+\setbeamersize{text margin left=0.8cm, text margin right=0.8cm}
+\setbeamercolor{structure}{fg=senacblue}
+\setbeamercolor{frametitle}{bg=senacblue!5, fg=senacblue}
+\setbeamercolor{title}{fg=senacblue}
+\setbeamercolor{block title}{bg=senacblue!10, fg=senacblue}
+\setbeamercolor{block body}{bg=white}
+\setbeamertemplate{navigation symbols}{}
+
+\lstdefinestyle{aula}{
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  basicstyle=\ttfamily\tiny,
+  keywordstyle=\bfseries\color{codekw},
+  commentstyle=\itshape\color{codecom},
+  stringstyle=\color{codestr},
+  showstringspaces=false,
+  tabsize=2,
+  columns=fullflexible,
+  breaklines=true,
+  breakatwhitespace=true,
+  keepspaces=true,
+  upquote=true,
+  xleftmargin=0.8em,
+  framexleftmargin=0.6em,
+  framexrightmargin=0.4em
+}
+\lstset{style=aula}
+
+\title[Stripe - Aula 1]{Aula 1: Stripe para assinatura com Payment Links}
+\subtitle{Introdução prática para iniciantes -- Express, PostgreSQL, Sequelize, React e webhook seguro}
+\author[Valtemir Procópio]{Valtemir Procópio de Lima\\Senac Rio Grande do Norte}
+\date[Stripe - 2026]{2026}
+
+\setbeamertemplate{title page}{
+  \begin{centering}
+    \vspace*{0.6cm}
+    \IfFileExists{senac_logo.png}{\includegraphics[height=2.0cm]{senac_logo.png}\par}{}
+    \vspace{0.8cm}
+    {\usebeamerfont{title}\usebeamercolor[fg]{title}\LARGE\bfseries\inserttitle\par}
+    \vspace{0.4cm}
+    {\usebeamerfont{subtitle}\large\insertsubtitle\par}
+    \vspace{1.0cm}
+    {\usebeamerfont{author}\large\insertauthor\par}
+    \vspace{0.2cm}
+    {\usebeamerfont{date}\normalsize\insertdate\par}
+    \vfill
+  \end{centering}
+}
+
+\setbeamercolor{author in head/foot}{bg=senacblue, fg=white}
+\setbeamercolor{title in head/foot}{bg=senacblue!90, fg=white}
+\setbeamercolor{date in head/foot}{bg=senacblue, fg=white}
+
+\setbeamertemplate{footline}{%
+  \leavevmode%
+  \hbox{%
+    \begin{beamercolorbox}[wd=.30\paperwidth,ht=2.6ex,dp=1ex,left]{author in head/foot}%
+      \hspace*{0.8em}{\color{white}\textbf{\insertshortauthor}}
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.50\paperwidth,ht=2.6ex,dp=1ex,center]{title in head/foot}%
+      {\color{white}\textbf{STRIPE - AULA 1}}
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.20\paperwidth,ht=2.6ex,dp=1ex,right]{date in head/foot}%
+      \insertframenumber/\inserttotalframenumber\hspace*{0.8em}
+    \end{beamercolorbox}%
+  }%
+  \vskip0pt%
+}
+
+\begin{document}
+
+\begin{frame}[plain]
+  \titlepage
+\end{frame}
+
+\begin{frame}{Roteiro da Aula}
+\tableofcontents
+\end{frame}
+
+\section{Visão geral}
+
+\begin{frame}{O que é Stripe?}
+\begin{itemize}
+  \item Stripe é uma plataforma de pagamentos e billing.
+  \item Ela oferece checkout hospedado, links de pagamento, portal do cliente, webhooks e APIs.
+  \item Para iniciantes, ela resolve a parte crítica do pagamento sem obrigar a construir tudo do zero.
+\end{itemize}
+
+\begin{block}{Nesta aula}
+Vamos focar em \textbf{assinatura simples com Payment Links}, porque é o caminho mais rápido para validar cobrança e liberar acesso.
+\end{block}
+\end{frame}
+
+\begin{frame}{Cenário didático da aula}
+\begin{itemize}
+  \item Projeto web com \code{Express} no backend.
+  \item \code{PostgreSQL} como banco.
+  \item \code{Sequelize} com \textbf{migrations} e \textbf{seeders}.
+  \item Frontend simples em \code{React + Vite + Tailwind}.
+  \item Login simplificado por e-mail já existente na aplicação.
+  \item Venda de plano \textbf{BASIC}, \textbf{PRO} ou \textbf{PRO ANUAL}.
+\end{itemize}
+
+\begin{exampleblock}{Objetivo}
+Depois do pagamento, o sistema precisa reconhecer a compra e liberar o acesso premium com segurança.
+\end{exampleblock}
+\end{frame}
+
+\section{Tipos de integração}
+
+\begin{frame}{Principais formas de integrar Stripe}
+\begin{enumerate}
+  \item \textbf{Payment Links}: link pronto hospedado pela Stripe.
+  \item \textbf{Checkout Sessions}: backend cria uma sessão de checkout sob demanda.
+  \item \textbf{Elements + Payment Intents}: checkout totalmente customizado.
+  \item \textbf{Customer Portal}: portal para o cliente gerenciar cobrança e assinatura.
+\end{enumerate}
+
+\begin{alertblock}{Escolha da aula}
+Vamos começar com \textbf{Payment Links} porque ele exige menos código no frontend e permite manter a segurança no backend com webhook.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Por que escolhemos Payment Links?}
+\begin{itemize}
+  \item Ideal para \textbf{planos fixos} e início rápido.
+  \item A Stripe hospeda a página de pagamento.
+  \item O backend só precisa montar a URL final e processar o webhook.
+  \item Menos código para os alunos, mais foco no fluxo do negócio.
+\end{itemize}
+
+\begin{block}{Limite importante}
+Payment Links é ótimo para catálogo simples. Se o preço depender de regra dinâmica por usuário, normalmente o próximo passo é Checkout Sessions.
+\end{block}
+\end{frame}
+
+\section{Produtos, preços e links}
+
+\begin{frame}{Produto x preço no Stripe}
+\begin{itemize}
+  \item \textbf{Produto}: o que você vende.
+  \item \textbf{Preço}: quanto custa e com que frequência cobrar.
+  \item Um mesmo produto pode ter vários preços: mensal, anual, promocional.
+\end{itemize}
+
+\begin{exampleblock}{Exemplo didático}
+Produto: \textbf{PDFix Pro}\\
+Preços: \textbf{mensal}, \textbf{anual}
+\end{exampleblock}
+\end{frame}
+
+\begin{frame}{Modelando planos para a aplicação}
+\begin{itemize}
+  \item \textbf{BASIC}: acesso básico.
+  \item \textbf{PRO}: acesso premium mensal.
+  \item \textbf{PRO\_YEARLY}: acesso premium anual.
+\end{itemize}
+
+\begin{block}{Regra didática}
+Cada plano terá um \textbf{Payment Link próprio}. Isso simplifica o frontend e o backend.
+\end{block}
+
+\begin{alertblock}{Boa prática}
+Mesmo com Payment Link, mantenha um cadastro local do plano no banco. O sistema não deve depender apenas da Dashboard para saber o que cada plano libera.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{O que criar primeiro no Stripe Dashboard}
+\begin{enumerate}
+  \item Criar a conta Stripe em modo de teste.
+  \item Criar o produto.
+  \item Criar o preço recorrente.
+  \item Criar o Payment Link para aquele preço.
+  \item Copiar a URL do link e registrar no sistema.
+\end{enumerate}
+
+\begin{exampleblock}{Organização recomendada}
+Um Payment Link por plano que o usuário realmente vai ver na aplicação.
+\end{exampleblock}
+\end{frame}
+
+\section{Início da integração}
+
+\begin{frame}[fragile]{O que instalar no projeto}
+\begin{lstlisting}[language={}]
+# backend
+npm i express cors stripe dotenv jsonwebtoken sequelize pg pg-hstore
+npm i -D sequelize-cli nodemon
+
+# frontend
+npm i react react-dom
+npm i -D vite @vitejs/plugin-react tailwindcss @tailwindcss/vite
+\end{lstlisting}
+
+\begin{itemize}
+  \item \code{stripe}: SDK oficial da Stripe.
+  \item \code{sequelize-cli}: migrations e seeders.
+  \item \code{react + vite}: frontend simples para abrir checkout e testar a API.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Variáveis de ambiente mínimas}
+\begin{lstlisting}[language={}]
+PORT=3333
+APP_URL=http://localhost:5173
+CORS_ORIGIN=http://localhost:5173
+JWT_SECRET=uma-chave-forte
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/appdb
+
+STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxxx
+STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxx
+\end{lstlisting}
+
+\begin{alertblock}{Regra de ouro}
+A \code{STRIPE\_SECRET\_KEY} fica apenas no backend. Ela nunca vai para React, Next ou qualquer código do cliente.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}[fragile]{Variáveis de ambiente dos planos}
+\begin{lstlisting}[language={}]
+STRIPE_BASIC_PAYMENT_LINK_URL=https://buy.stripe.com/test_xxx
+STRIPE_BASIC_PAYMENT_LINK_ID=plink_xxx
+
+STRIPE_PRO_PAYMENT_LINK_URL=https://buy.stripe.com/test_xxx
+STRIPE_PRO_PAYMENT_LINK_ID=plink_xxx
+
+STRIPE_PRO_YEARLY_PAYMENT_LINK_URL=https://buy.stripe.com/test_xxx
+STRIPE_PRO_YEARLY_PAYMENT_LINK_ID=plink_xxx
+\end{lstlisting}
+
+\begin{exampleblock}{Por que guardar o ID do Payment Link?}
+No webhook, esse ID ajuda a reconciliar o evento recebido com o \textbf{plano local} salvo no banco.
+\end{exampleblock}
+\end{frame}
+
+\begin{frame}{Onde pegar as chaves no Stripe}
+\begin{itemize}
+  \item \textbf{API keys}: Dashboard \textrightarrow{} \textbf{Developers} \textrightarrow{} \textbf{API keys}.
+  \item Use \textbf{test mode} no começo.
+  \item Copie a \textbf{Secret key} para o backend.
+  \item Em Payment Links, você geralmente nem precisa da publishable key para iniciar.
+\end{itemize}
+
+\begin{block}{Webhook secret}
+Para o webhook, use um segredo \textbf{próprio do endpoint}. Em teste local, esse segredo normalmente vem do comando \code{stripe listen}.
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Configuração inicial do Stripe no backend}
+\begin{lstlisting}[language=JavaScript]
+// back/src/config/stripe.js
+const Stripe = require('stripe');
+
+module.exports = function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY);
+};
+\end{lstlisting}
+
+\begin{exampleblock}{Papel deste arquivo}
+Centralizar a instância da Stripe em um único lugar da aplicação.
+\end{exampleblock}
+\end{frame}
+
+\section{Estrutura da aplicação}
+
+\begin{frame}[fragile]{Estrutura geral sugerida}
+\begin{lstlisting}[language={}]
+back/
+  src/
+    config/
+      stripe.js
+      sequelize.js
+    database/
+      migrations/
+      seeders/
+      init-models.js
+    middlewares/
+    modules/
+      usuario/
+      plano/
+      assinatura/
+      stripe/
+
+front/
+  src/
+    components/
+    lib/
+    App.jsx
+    main.jsx
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}{Onde cada coisa deve ficar}
+\begin{itemize}
+  \item \textbf{usuario}: login, consulta do usuário autenticado.
+  \item \textbf{plano}: catálogo local de planos e links.
+  \item \textbf{assinatura}: status da assinatura e acesso premium.
+  \item \textbf{stripe}: webhook e integração com billing portal.
+  \item \textbf{middlewares}: autenticação e proteção de rotas premium.
+  \item \textbf{database}: migrations, seeders e inicialização dos modelos.
+\end{itemize}
+\end{frame}
+
+\section{O que o backend deve guardar}
+
+\begin{frame}{O que salvar no banco local}
+\begin{itemize}
+  \item \textbf{Usuário}: id, e-mail, opcionalmente \code{stripeCustomerId}.
+  \item \textbf{Plano}: código, nome, \code{paymentLinkUrl}, \code{accessKey} e \code{stripePaymentLinkId}.
+  \item \textbf{Assinatura}: usuário, plano, status, período atual e IDs da Stripe.
+  \item \textbf{Eventos Stripe}: \code{eventId} processado, para evitar duplicidade.
+\end{itemize}
+
+\begin{alertblock}{Ideia principal}
+A Stripe processa o pagamento; a sua aplicação continua sendo a fonte de verdade do acesso ao produto.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}[fragile]{Exemplo simples de modelagem}
+\begin{lstlisting}[language={}]
+usuarios
+- id
+- email
+- stripe_customer_id
+
+planos
+- id
+- code
+- name
+- payment_link_url
+- stripe_payment_link_id
+- access_key
+
+assinaturas
+- id
+- user_id
+- plan_id
+- status
+- stripe_subscription_id
+- stripe_checkout_session_id
+- current_period_end
+
+stripe_events
+- stripe_event_id
+- type
+- processed_at
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}{Por que guardar isso?}
+\begin{itemize}
+  \item Saber qual plano o usuário comprou.
+  \item Liberar ou bloquear acesso mesmo que o frontend não saiba os detalhes do pagamento.
+  \item Reagir a renovação, falha de pagamento e cancelamento.
+  \item Garantir idempotência ao processar webhook mais de uma vez.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Migrations e seeders no fluxo da aula}
+\begin{lstlisting}[language={}]
+cd back
+npm run db:migrate
+npm run db:seed
+npm run dev
+\end{lstlisting}
+
+\begin{block}{Por que isso importa?}
+Como a aula usa Sequelize com migrations, o banco precisa nascer de forma reproduzível para toda a turma.
+\end{block}
+\end{frame}
+
+\section{Fluxo com Payment Links}
+
+\begin{frame}{Fluxo completo da integração}
+\begin{enumerate}
+  \item Usuário autenticado escolhe um plano.
+  \item Backend monta a URL final do Payment Link.
+  \item Frontend redireciona para Stripe.
+  \item Cliente paga na página hospedada.
+  \item Stripe envia evento ao webhook.
+  \item Backend atualiza assinatura e libera acesso.
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]{Montando a URL do Payment Link}
+\begin{lstlisting}[language=JavaScript]
+const url = new URL(plan.paymentLinkUrl);
+url.searchParams.set('client_reference_id', user.id);
+url.searchParams.set('locked_prefilled_email', user.email);
+
+return res.json({ url: url.toString() });
+\end{lstlisting}
+
+\begin{exampleblock}{Por que assim?}
+\code{client\_reference\_id} ajuda a reconciliar o pagamento com o usuário interno.\\
+\code{locked\_prefilled\_email} evita divergência do e-mail no checkout.
+\end{exampleblock}
+\end{frame}
+
+\begin{frame}[fragile]{Rota para entregar o link ao frontend}
+\begin{lstlisting}[language=JavaScript]
+router.post('/assinaturas/payment-link', authMiddleware,
+  assinaturaController.getPaymentLink);
+\end{lstlisting}
+
+\begin{lstlisting}[language=JavaScript]
+async function getPaymentLink(req, res, next) {
+  const user = req.user;
+  const { planCode } = req.body;
+  const plan = await planoService.findByCode(planCode);
+
+  const url = new URL(plan.paymentLinkUrl);
+  url.searchParams.set('client_reference_id', user.id);
+  url.searchParams.set('locked_prefilled_email', user.email);
+
+  return res.json({ url: url.toString() });
+}
+\end{lstlisting}
+\end{frame}
+
+\section{Webhook e liberação de acesso}
+
+\begin{frame}{Por que o webhook é obrigatório?}
+\begin{itemize}
+  \item A página de sucesso é apenas UX.
+  \item O usuário pode pagar e fechar a aba.
+  \item O backend precisa receber a confirmação oficial da Stripe.
+  \item A liberação do acesso deve acontecer no servidor.
+\end{itemize}
+
+\begin{alertblock}{Regra de segurança}
+Nunca liberar acesso só porque o frontend voltou de uma \code{success\_url}.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}[fragile]{Webhook em Express com raw body}
+\begin{lstlisting}[language=JavaScript]
+app.use('/stripe', webhookRouter);
+
+webhookRouter.post('/webhook',
+  express.raw({ type: 'application/json' }),
+  stripeWebhookController.handle
+);
+
+app.use(express.json());
+\end{lstlisting}
+
+\begin{alertblock}{Detalhe crítico}
+A validação de assinatura da Stripe exige o \textbf{raw body}. Se o JSON for transformado antes, a verificação falha.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}[fragile]{Validação da assinatura do webhook}
+\begin{lstlisting}[language=JavaScript]
+const signature = req.headers['stripe-signature'];
+
+const event = stripe.webhooks.constructEvent(
+  req.body,
+  signature,
+  process.env.STRIPE_WEBHOOK_SECRET
+);
+\end{lstlisting}
+
+\begin{exampleblock}{Se falhar}
+Retorne erro e não processe o evento. Sem assinatura válida, você não deve confiar no payload.
+\end{exampleblock}
+\end{frame}
+
+\begin{frame}{Eventos principais para assinatura}
+\begin{itemize}
+  \item \code{checkout.session.completed}
+  \item \code{invoice.paid}
+  \item \code{invoice.payment\_failed}
+  \item \code{customer.subscription.updated}
+  \item \code{customer.subscription.deleted}
+\end{itemize}
+
+\begin{block}{Didaticamente}
+Para a primeira versão, trate pelo menos \code{checkout.session.completed}, \code{invoice.paid} e \code{customer.subscription.deleted}.
+\end{block}
+\end{frame}
+
+\begin{frame}{Como liberar acesso no sistema}
+\begin{enumerate}
+  \item Receber o evento Stripe.
+  \item Verificar a assinatura do webhook.
+  \item Conferir se o evento já foi processado.
+  \item Identificar o usuário pelo \code{client\_reference\_id} ou assinatura vinculada.
+  \item Atualizar a tabela \code{assinaturas}.
+  \item Autorizar o recurso premium pelo backend.
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]{Middleware de acesso premium}
+\begin{lstlisting}[language=JavaScript]
+async function requireActiveSubscription(req, res, next) {
+  const subscription = await assinaturaService.getPremiumAccessByUser(req.user.id);
+
+  if (!subscription) {
+    return res.status(403).json({ error: 'Acesso nao liberado.' });
+  }
+
+  next();
+}
+\end{lstlisting}
+
+\begin{exampleblock}{Ideia central}
+Quem decide o acesso é o backend, não o botão do frontend.
+\end{exampleblock}
+\end{frame}
+
+\section{Teste local com Stripe CLI}
+
+\begin{frame}{Quando entra o teste local?}
+\begin{itemize}
+  \item Depois que a rota \code{/stripe/webhook} já existe.
+  \item Depois que o backend já consegue validar assinatura Stripe.
+  \item Antes de depender apenas de testes manuais no navegador.
+\end{itemize}
+
+\begin{block}{Objetivo}
+Confirmar localmente se o webhook está chegando, se a assinatura está válida e se o backend está processando os eventos corretos.
+\end{block}
+\end{frame}
+
+\begin{frame}{Passo visual no Dashboard atual}
+\begin{columns}[T,onlytextwidth]
+  \column{0.48\textwidth}
+  \begin{itemize}
+    \item Na interface atual da Stripe, abra \textbf{Workbench} \textrightarrow{} \textbf{Webhooks}.
+    \item Clique em \textbf{Teste com um ouvinte local}.
+    \item A Stripe mostra um fluxo guiado para usar a \textbf{Stripe CLI}.
+  \end{itemize}
+
+  \begin{exampleblock}{Ideia}
+Esse passo é ótimo para a turma porque conecta o painel visual da Stripe com o terminal local do projeto.
+  \end{exampleblock}
+
+  \column{0.48\textwidth}
+  \centering
+  \screenshotplaceholder{img/stripe-workbench-webhooks.png}{
+    Tela do Workbench com o botão \textbf{Teste com um ouvinte local}.
+  }
+\end{columns}
+\end{frame}
+
+\begin{frame}{Tela guiada do ouvinte local}
+\begin{columns}[T,onlytextwidth]
+  \column{0.48\textwidth}
+  \begin{enumerate}
+    \item Fazer login na Stripe CLI com \code{stripe login}.
+    \item Encaminhar eventos para a rota local.
+    \item Disparar eventos de teste pela CLI.
+  \end{enumerate}
+
+  \begin{alertblock}{Importante}
+Esse modal não substitui seu código de webhook. Ele apenas ajuda a testar o endpoint local.
+  \end{alertblock}
+
+  \column{0.48\textwidth}
+  \centering
+  \screenshotplaceholder{img/stripe-local-listener-modal.png}{
+    Modal com os comandos \code{stripe login}, \code{stripe listen} e \code{stripe trigger}.
+  }
+\end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Comandos mínimos para testar localmente}
+\begin{lstlisting}[language={}]
+# 1) autenticar a CLI
+stripe login
+
+# 2) encaminhar eventos para o webhook local
+stripe listen --forward-to localhost:3333/stripe/webhook
+\end{lstlisting}
+
+\begin{block}{Saída importante}
+Ao iniciar o \code{stripe listen}, a CLI mostra algo como \code{whsec\_...}.\\
+Esse valor deve ser copiado para a variável \code{STRIPE\_WEBHOOK\_SECRET}.
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Filtrando apenas os eventos que interessam}
+\begin{lstlisting}[language={}]
+stripe listen \
+  --events checkout.session.completed,invoice.paid,\
+invoice.payment_failed,customer.subscription.updated,\
+customer.subscription.deleted \
+  --forward-to localhost:3333/stripe/webhook
+\end{lstlisting}
+
+\begin{exampleblock}{Vantagem}
+Filtrar eventos deixa a aula mais limpa e facilita enxergar só o que interessa para assinatura.
+\end{exampleblock}
+\end{frame}
+
+\begin{frame}[fragile]{Disparando eventos de teste com a CLI}
+\begin{lstlisting}[language={}]
+# listar eventos suportados pela CLI
+stripe trigger --help
+
+# exemplo generico da documentacao oficial
+stripe trigger payment_intent.succeeded
+\end{lstlisting}
+
+\begin{block}{Cuidado didático}
+Para validar o \textbf{endpoint} e a \textbf{assinatura do webhook}, a CLI ajuda muito.\\
+Para validar o fluxo \textbf{completo} desta aula, o ideal é também abrir o \textbf{Payment Link real em modo de teste} e concluir a compra.
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Teste completo com Payment Link em modo de teste}
+\begin{lstlisting}[language={}]
+1) subir a API local em localhost:3333
+2) iniciar o stripe listen
+3) fazer login no frontend
+4) pedir /assinaturas/payment-link
+5) abrir o checkout da Stripe
+6) pagar em modo de teste
+7) observar o webhook chegando no terminal
+\end{lstlisting}
+
+\begin{exampleblock}{Cartão de teste conhecido}
+\code{4242 4242 4242 4242} com data futura e CVC qualquer simula pagamento bem-sucedido em ambiente de teste.
+\end{exampleblock}
+\end{frame}
+
+\begin{frame}{O que verificar durante o teste local}
+\begin{itemize}
+  \item O terminal do \code{stripe listen} recebeu o evento?
+  \item O backend respondeu \code{200} para o webhook?
+  \item A assinatura foi salva ou atualizada no PostgreSQL?
+  \item A rota premium passou a liberar o acesso?
+  \item O \code{stripeCustomerId} foi salvo para uso futuro no portal?
+\end{itemize}
+\end{frame}
+
+\section{Customer Portal}
+
+\begin{frame}{Onde o Customer Portal entra?}
+\begin{itemize}
+  \item Depois que o básico já estiver funcionando.
+  \item Ele ajuda o cliente a atualizar cartão, ver invoices, cancelar e gerenciar assinatura.
+  \item Você evita construir uma área completa de billing manualmente.
+\end{itemize}
+
+\begin{block}{Botão sugerido na aplicação}
+\textbf{Minha assinatura} \textrightarrow{} \textbf{Gerenciar cobrança}
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Criando sessão do Customer Portal}
+\begin{lstlisting}[language=JavaScript]
+const session = await stripe.billingPortal.sessions.create({
+  customer: assinatura.stripeCustomerId,
+  return_url: `${process.env.APP_URL}/`
+});
+
+return res.json({ url: session.url });
+\end{lstlisting}
+
+\begin{exampleblock}{Quando usar}
+Quando o cliente já possui \code{stripeCustomerId} salvo e você quer um fluxo de autoatendimento.
+\end{exampleblock}
+\end{frame}
+
+\section{Segurança}
+
+\begin{frame}{Checklist de segurança para pagamento seguro}
+\begin{enumerate}
+  \item Secret key só no backend.
+  \item Webhook com validação de assinatura.
+  \item Raw body na rota do webhook.
+  \item Acesso liberado apenas no backend.
+  \item Tabela de eventos processados para idempotência.
+  \item HTTPS em produção.
+  \item Logs sem dados sensíveis.
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Erros comuns de iniciantes}
+\begin{itemize}
+  \item Confiar no retorno da \code{success\_url}.
+  \item Salvar apenas a URL do Payment Link e não o plano local.
+  \item Não guardar o \code{stripeSubscriptionId}.
+  \item Misturar corpo JSON normal com o raw body do webhook.
+  \item Colocar a secret key no frontend.
+  \item Não tratar eventos duplicados.
+\end{itemize}
+\end{frame}
+
+\section{Planejamento comercial do sistema}
+
+\begin{frame}{Pergunta orientadora para a turma}
+\begin{block}{Pergunta principal}
+Considerando o sistema do seu grupo, \textbf{quais serão as regras de pagamento, quais serão os valores cobrados, como esses valores se comparam com a concorrência e qual será o diferencial atrativo para convencer o cliente a pagar?}
+\end{block}
+
+\begin{alertblock}{Objetivo pedagógico}
+Antes de integrar Stripe, o grupo precisa definir claramente \textbf{o que está vendendo}, \textbf{quanto vai cobrar}, \textbf{por que esse preço faz sentido} e \textbf{o que será liberado depois do pagamento}.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{O que cada grupo precisa explicar}
+\begin{enumerate}
+  \item \textbf{Regras de pagamento}: pagamento único, mensal, anual, teste grátis, cancelamento, renovação e reembolso.
+  \item \textbf{Valores bem definidos}: preço exato de cada plano e o que cada plano entrega.
+  \item \textbf{Concorrência}: quais soluções parecidas existem e quanto elas cobram.
+  \item \textbf{Diferencial}: o que torna o sistema mais interessante para o cliente.
+  \item \textbf{Regra de liberação}: qual funcionalidade será liberada após o pagamento.
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Regras mínimas que precisam estar claras}
+\begin{itemize}
+  \item O sistema terá \textbf{plano gratuito}, \textbf{plano pago} ou ambos?
+  \item A cobrança será \textbf{mensal}, \textbf{anual} ou \textbf{pagamento único}?
+  \item O cliente poderá \textbf{cancelar} quando quiser?
+  \item Haverá \textbf{período de teste}?
+  \item O que acontece se o pagamento \textbf{falhar}?
+  \item O que o usuário \textbf{ganha} imediatamente após pagar?
+\end{itemize}
+
+\begin{exampleblock}{Importância}
+Essas regras afetam diretamente a modelagem de \code{planos}, \code{assinaturas}, webhook e controle de acesso.
+\end{exampleblock}
+\end{frame}
+
+\begin{frame}{Como definir os preços do sistema}
+\begin{itemize}
+  \item Escolher valores simples e fáceis de explicar.
+  \item Evitar preços sem justificativa.
+  \item Relacionar o valor cobrado ao benefício entregue.
+  \item Deixar claro o que muda entre \textbf{BASIC}, \textbf{PRO} e \textbf{ANUAL}.
+\end{itemize}
+
+\begin{block}{Exemplo didático}
+\textbf{BASIC}: R\$ 0\\
+\textbf{PRO}: R\$ 19,90/mês\\
+\textbf{PRO ANUAL}: R\$ 199,90/ano
+\end{block}
+
+\begin{alertblock}{Regra para a turma}
+O grupo deve apresentar \textbf{valor exato} e \textbf{benefícios exatos}. Não vale responder apenas ``preço acessível'' ou ``mais barato''.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Pesquisa de concorrência}
+\begin{itemize}
+  \item O grupo deve escolher pelo menos \textbf{2 concorrentes reais}.
+  \item Pesquisar preço mensal ou anual, recursos liberados, limitações do plano mais barato e ponto forte percebido.
+  \item Depois, comparar com a proposta do próprio sistema.
+\end{itemize}
+
+\begin{block}{Pergunta que o grupo precisa responder}
+Se o cliente comparar o seu sistema com outro que já existe, \textbf{por que pagaria pelo seu?}
+\end{block}
+\end{frame}
+
+\begin{frame}{Diferencial atrativo ao cliente}
+\begin{itemize}
+  \item O diferencial não deve ser genérico.
+  \item \textbf{Boa interface} sozinha não basta.
+  \item O diferencial precisa estar ligado ao problema real do cliente.
+\end{itemize}
+
+\begin{exampleblock}{Exemplos melhores}
+Geração de currículo em menos etapas; match mais rápido e filtros melhores; processo de recuperação de arquivos mais simples; recursos premium claramente úteis no plano pago.
+\end{exampleblock}
+\end{frame}
+
+\begin{frame}{Roteiro de resposta do grupo}
+\begin{enumerate}
+  \item Nome do sistema e problema que ele resolve.
+  \item Quais planos existirão.
+  \item Valor de cada plano.
+  \item O que cada plano libera.
+  \item Regras de pagamento e cancelamento.
+  \item Dois concorrentes e os respectivos preços.
+  \item Diferencial atrativo para convencer o cliente.
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]{Modelo de apresentação do grupo}
+\begin{lstlisting}[language={}]
+Sistema:
+Problema que resolve:
+
+Plano gratuito:
+Plano pago mensal:
+Plano pago anual:
+
+O que libera em cada plano:
+
+Regras de pagamento:
+- renovacao
+- cancelamento
+- periodo de teste
+- falha de pagamento
+
+Concorrente 1:
+Preco:
+Diferenciais:
+
+Concorrente 2:
+Preco:
+Diferenciais:
+
+Nosso diferencial:
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}{Critérios de avaliação desta atividade}
+\begin{itemize}
+  \item \textbf{Clareza}: regras e preços foram explicados de forma objetiva.
+  \item \textbf{Coerência}: o valor cobrado combina com a proposta do sistema.
+  \item \textbf{Pesquisa}: houve comparação real com concorrentes.
+  \item \textbf{Valor percebido}: o grupo explicou bem por que o cliente pagaria.
+  \item \textbf{Integração com a técnica}: ficou claro o que o backend precisará liberar após o pagamento.
+\end{itemize}
+\end{frame}
+
+\section{Prática da turma}
+
+\begin{frame}{Prática guiada da aula}
+\begin{enumerate}
+  \item Criar conta Stripe em modo de teste.
+  \item Criar produto e preço recorrente.
+  \item Gerar um Payment Link.
+  \item Salvar esse link na tabela \code{planos}.
+  \item Criar rota \code{/assinaturas/payment-link}.
+  \item Criar webhook \code{/stripe/webhook}.
+  \item Testar localmente com \code{stripe listen}.
+  \item Atualizar assinatura local após evento Stripe.
+  \item Proteger uma rota premium com middleware.
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]{Resumo técnico do fluxo}
+\begin{lstlisting}[language={}]
+1) frontend pede /assinaturas/payment-link
+2) backend monta URL com client_reference_id
+3) usuario paga na Stripe
+4) Stripe chama /stripe/webhook
+5) backend valida assinatura do evento
+6) backend atualiza assinatura no banco
+7) middleware libera a rota premium
+\end{lstlisting}
+\end{frame}
+
+\section{Avaliação e fechamento}
+
+\begin{frame}{Checkpoint rápido}
+\begin{enumerate}
+  \item Você consegue explicar Produto x Preço?
+  \item Você sabe por que escolhemos Payment Links nesta aula?
+  \item Você entende por que o webhook é obrigatório?
+  \item Você sabe como testar localmente com Stripe CLI?
+  \item Você consegue dizer o que deve ser salvo em \code{usuarios}, \code{planos} e \code{assinaturas}?
+  \item Você sabe onde a secret key deve ficar?
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Atividade avaliativa}
+\begin{block}{Desafio individual}
+Criar uma integração didática com 1 plano recorrente, 1 Payment Link e liberação de acesso por webhook.
+\end{block}
+
+\begin{itemize}
+  \item Evidência 1: tabela \code{planos} com \code{paymentLinkUrl}.
+  \item Evidência 2: endpoint \code{/assinaturas/payment-link} funcionando.
+  \item Evidência 3: webhook validando assinatura Stripe.
+  \item Evidência 4: teste local com \code{stripe listen}.
+  \item Evidência 5: rota premium protegida por middleware.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Fechamento}
+\begin{block}{Síntese da aula}
+Hoje organizamos a integração Stripe em camadas: plano local, Payment Link, webhook, assinatura, teste local e autorização de acesso.
+\end{block}
+
+\begin{itemize}
+  \item Próxima aula sugerida: \textbf{Customer Portal, troca de plano e cancelamento}.
+  \item Evolução futura: migrar de Payment Links para Checkout Sessions quando o negócio exigir mais dinamismo.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[allowframebreaks]{Referências oficiais confiáveis}
+\footnotesize
+\begin{itemize}
+  \item Stripe Docs -- Payment Links\\
+  \url{https://docs.stripe.com/payment-links}
+
+  \item Stripe Docs -- Create a Payment Link\\
+  \url{https://docs.stripe.com/payment-links/create}
+
+  \item Stripe Docs -- Track a payment link (URL parameters)\\
+  \url{https://docs.stripe.com/payment-links/url-parameters}
+
+  \item Stripe Docs -- API keys\\
+  \url{https://docs.stripe.com/keys}
+
+  \item Stripe Docs -- Manage event destinations / Webhooks\\
+  \url{https://docs.stripe.com/workbench/webhooks}
+
+  \item Stripe Docs -- Use the Stripe CLI\\
+  \url{https://docs.stripe.com/stripe-cli/use-cli}
+
+  \item Stripe Docs -- Trigger webhook events with the Stripe CLI\\
+  \url{https://docs.stripe.com/stripe-cli/triggers}
+
+  \item Stripe Docs -- Receive Stripe events in your webhook endpoint\\
+  \url{https://docs.stripe.com/webhooks}
+
+  \item Stripe Docs -- Resolve webhook signature verification errors\\
+  \url{https://docs.stripe.com/webhooks/signature}
+
+  \item Stripe Docs -- Products and prices\\
+  \url{https://docs.stripe.com/products-prices/how-products-and-prices-work}
+
+  \item Stripe Docs -- Recurring pricing models\\
+  \url{https://docs.stripe.com/products-prices/pricing-models}
+
+  \item Stripe Docs -- Using webhooks with subscriptions\\
+  \url{https://docs.stripe.com/billing/subscriptions/webhooks}
+
+  \item Stripe Docs -- Build a subscriptions integration with Checkout\\
+  \url{https://docs.stripe.com/payments/checkout/build-subscriptions}
+
+  \item Stripe Docs -- Customer Portal\\
+  \url{https://docs.stripe.com/customer-management}
+
+  \item Stripe Docs -- Integrate the customer portal with the API\\
+  \url{https://docs.stripe.com/customer-management/integrate-customer-portal}
+
+  \item Stripe Docs -- Test card numbers\\
+  \url{https://docs.stripe.com/testing?testing-method=payment-methods}
+
+  \item Sequelize Docs v6 -- Getting Started\\
+  \url{https://sequelize.org/docs/v6/getting-started/}
+
+  \item Sequelize Docs v6 -- Model Basics\\
+  \url{https://sequelize.org/docs/v6/core-concepts/model-basics/}
+
+  \item Sequelize Docs v6 -- Migrations\\
+  \url{https://sequelize.org/docs/v6/other-topics/migrations/}
+
+  \item Sequelize Docs v6 -- Dialect-Specific Things\\
+  \url{https://sequelize.org/docs/v6/other-topics/dialect-specific-things/}
+\end{itemize}
+\end{frame}
+
+\end{document}
