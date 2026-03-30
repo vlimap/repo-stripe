@@ -31,6 +31,12 @@ Se a turma estiver vendo o projeto pela primeira vez, siga esta ordem:
 4. `back/src/modules/assinatura/controller/subscription.controller.js`
 5. `back/src/modules/stripe/service/stripe.service.js`
 
+## Manual detalhado
+
+Para uma ordem de implementacao passo a passo, comece por:
+
+- `MANUAL_IMPLEMENTACAO.md`
+
 ## Configuracao rapida
 
 1. Copie `back/.env.example` para `back/.env`.
