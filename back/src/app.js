@@ -1,7 +1,6 @@
 const cors = require('cors');
 const express = require('express');
 
-const errorMiddleware = require('./middlewares/error.middleware');
 const planRoutes = require('./modules/plano/route/plan.route');
 const subscriptionRoutes = require('./modules/assinatura/route/subscription.route');
 const { stripeRouter, webhookRouter } = require('./modules/stripe/route/stripe.route');
@@ -32,7 +31,5 @@ app.use('/stripe', stripeRouter);
 app.use((req, res) => {
   res.status(404).json({ error: 'Rota nao encontrada.' });
 });
-
-app.use(errorMiddleware);
 
 module.exports = app;

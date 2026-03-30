@@ -1,9 +1,9 @@
 const { Router } = require('express');
 
-const planController = require('../controller/plan.controller');
+const PlanController = require('../controller/plan.controller');
 
 const router = Router();
 
-router.get('/', planController.list);
+router.get('/', PlanController.list);
 
 module.exports = router;

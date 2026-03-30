@@ -1,7 +1,7 @@
 const express = require('express');
 
-const authMiddleware = require('../../../middlewares/auth.middleware');
-const stripeController = require('../controller/stripe.controller');
+const AuthMiddleware = require('../../../middlewares/auth.middleware');
+const StripeController = require('../controller/stripe.controller');
 
 const webhookRouter = express.Router();
 const stripeRouter = express.Router();
@@ -9,10 +9,14 @@ const stripeRouter = express.Router();
 webhookRouter.post(
   '/webhook',
   express.raw({ type: 'application/json' }),
-  stripeController.handleWebhook
+  StripeController.handleWebhook
 );
 
-stripeRouter.post('/customer-portal', authMiddleware, stripeController.createCustomerPortalSession);
+stripeRouter.post(
+  '/customer-portal',
+  AuthMiddleware.handle,
+  StripeController.createCustomerPortalSession
+);
 
 module.exports = {
   webhookRouter,

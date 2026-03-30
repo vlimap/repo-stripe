@@ -1,16 +1,27 @@
-const subscriptionService = require('../modules/assinatura/service/subscription.service');
+const SubscriptionService = require('../modules/assinatura/service/subscription.service');
 
-module.exports = async function requireActiveSubscription(req, res, next) {
-  try {
-    const subscription = await subscriptionService.getPremiumAccessByUser(req.user.id);
-
-    if (!subscription) {
-      return res.status(403).json({ error: 'Acesso premium nao liberado.' });
-    }
-
-    req.subscription = subscription;
-    next();
-  } catch (error) {
-    next(error);
+class RequireActiveSubscriptionMiddleware {
+  static sendError(res, error) {
+    console.error(error);
+    return res.status(error.status || 500).json({
+      error: error.message || 'Erro interno do servidor.'
+    });
   }
-};
+
+  static async handle(req, res, next) {
+    try {
+      const subscription = await SubscriptionService.getPremiumAccessByUser(req.user.id);
+
+      if (!subscription) {
+        return res.status(403).json({ error: 'Acesso premium nao liberado.' });
+      }
+
+      req.subscription = subscription;
+      return next();
+    } catch (error) {
+      return RequireActiveSubscriptionMiddleware.sendError(res, error);
+    }
+  }
+}
+
+module.exports = RequireActiveSubscriptionMiddleware;

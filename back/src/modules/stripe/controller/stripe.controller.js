@@ -1,47 +1,53 @@
 const getStripe = require('../../../config/stripe');
-const stripeService = require('../service/stripe.service');
+const StripeService = require('../service/stripe.service');
 
-async function handleWebhook(req, res, next) {
-  try {
-    const signature = req.headers['stripe-signature'];
-
-    if (!signature) {
-      return res.status(400).json({ error: 'Header stripe-signature ausente.' });
-    }
-
-    const stripe = getStripe();
-    const event = stripe.webhooks.constructEvent(
-      req.body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-
-    const result = await stripeService.handleWebhookEvent(event);
-
-    return res.json({
-      received: true,
-      duplicate: result.duplicate
+class StripeController {
+  static sendError(res, error) {
+    console.error(error);
+    return res.status(error.status || 500).json({
+      error: error.message || 'Erro interno do servidor.'
     });
-  } catch (error) {
-    if (error.type === 'StripeSignatureVerificationError') {
-      return res.status(400).json({ error: 'Assinatura do webhook invalida.' });
+  }
+
+  static async handleWebhook(req, res) {
+    try {
+      const signature = req.headers['stripe-signature'];
+
+      if (!signature) {
+        return res.status(400).json({ error: 'Header stripe-signature ausente.' });
+      }
+
+      const stripe = getStripe();
+      const event = stripe.webhooks.constructEvent(
+        req.body,
+        signature,
+        process.env.STRIPE_WEBHOOK_SECRET
+      );
+
+      const result = await StripeService.handleWebhookEvent(event);
+
+      return res.json({
+        received: true,
+        duplicate: result.duplicate
+      });
+    } catch (error) {
+      if (error.type === 'StripeSignatureVerificationError') {
+        return res.status(400).json({ error: 'Assinatura do webhook invalida.' });
+      }
+
+      return StripeController.sendError(res, error);
     }
+  }
 
-    return next(error);
+  static async createCustomerPortalSession(req, res) {
+    try {
+      const session = await StripeService.createCustomerPortalSession(req.user);
+
+      return res.json({ url: session.url });
+    } catch (error) {
+      return StripeController.sendError(res, error);
+    }
   }
 }
 
-async function createCustomerPortalSession(req, res, next) {
-  try {
-    const session = await stripeService.createCustomerPortalSession(req.user);
-
-    return res.json({ url: session.url });
-  } catch (error) {
-    return next(error);
-  }
-}
-
-module.exports = {
-  handleWebhook,
-  createCustomerPortalSession
-};
+module.exports = StripeController;

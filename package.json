@@ -1,0 +1,10 @@
+{
+  "name": "stripe-aula1-workspace",
+  "private": true,
+  "scripts": {
+    "dev:back": "npm --prefix back run dev",
+    "dev:front": "npm --prefix front run dev",
+    "db:setup": "npm --prefix back run db:setup",
+    "build:front": "npm --prefix front run build"
+  }
+}
